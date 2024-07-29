@@ -4,7 +4,7 @@ import axios from 'axios';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { sql } from '@vercel/postgres'; 
-import { calculateAndStoreHistoricalTPS } from '../historical-tps.js';
+import { calculateAndStoreHistoricalTPS } from './historical-tps.js';
 
 
 dotenv.config();
