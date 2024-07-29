@@ -49,7 +49,7 @@ async function getWorkingNode() {
     throw new Error("Failed to connect to any node");
 }
 
-const sequelize = new Sequelize(process.env.DATABASE_URL, {
+const sequelize = new Sequelize(process.env.POSTGRES_URL, {
     dialect: 'postgres',
     dialectOptions: {
       ssl: {
