@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monero Current TPS - Crypto Privacy Watch</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>CRYPTO PRIVACY WATCH</h1>
+            <nav>
+                <a href="/">HOME</a>
+                <a href="/monero-tps">MONERO TPS</a>
+                <a href="#">COINS</a>
+                <a href="#">COMPARE</a>
+                <a href="#">RESOURCES</a>
+                <a href="#">ABOUT</a>
+            </nav>
+        </header>
+
+        <section class="hero">
+            <h2>Monero Current TPS</h2>
+        </section>
+
+        <div id="monero-tps-display">
+            <h3>Current Monero TPS (last 100 blocks): <span id="current-tps-value">Loading...</span></h3>
+            <h3>Most Recent Daily TPS: <span id="recent-tps-value">Loading...</span></h3>
+            <button onclick="getMoneroTPS()">Refresh TPS</button>
+        </div>
+        
+    </div>
+    <div id="historical-tps-display">
+        <h3>Historical Monero TPS</h3>
+        <canvas id="tps-chart"></canvas>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+
+    <script src="/script.js"></script>
+    <script>
+         function getMoneroTPS() {
+            document.getElementById('current-tps-value').textContent = 'Calculating...';
+            document.getElementById('recent-tps-value').textContent = 'Calculating...';
+            fetch('/get-monero-tps')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        document.getElementById('current-tps-value').textContent = 'Error: ' + data.error;
+                        document.getElementById('recent-tps-value').textContent = 'Error: ' + data.error;
+                    } else {
+                        document.getElementById('current-tps-value').textContent = data.currentTPS.toFixed(4);
+                        document.getElementById('recent-tps-value').textContent = data.recentHistoricalTPS ? data.recentHistoricalTPS.toFixed(4) : 'N/A';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    document.getElementById('current-tps-value').textContent = 'Error: Unable to calculate TPS';
+                    document.getElementById('recent-tps-value').textContent = 'Error: Unable to retrieve recent TPS';
+                });
+        }
+
+        async function getHistoricalTPS() {
+            try {
+                const response = await fetch('/get-historical-tps');
+                const data = await response.json();
+                
+                if (data.error) {
+                    console.error('Error fetching historical TPS:', data.error);
+                    document.getElementById('historical-tps-display').innerHTML = `<p>Error: ${data.error}</p>`;
+                    return;
+                }
+                
+                if (data.length === 0) {
+                    document.getElementById('historical-tps-display').innerHTML = '<p>No historical TPS data available yet. Please run the historical TPS calculation script.</p>';
+                    return;
+                }
+                
+                const dates = data.map(item => item.date);
+                const tpsValues = data.map(item => item.tps);
+
+
+                const ctx = document.getElementById('tps-chart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: dates,
+                        datasets: [{
+                            label: 'Monero TPS',
+                            data: tpsValues,
+                            borderColor: 'rgb(75, 192, 192)',
+                            tension: 0.1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            x: {
+                                type: 'time',
+                                time: {
+                                    unit: 'month'
+                                }
+                            },
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error('Error" fetching historical TPS:', error);
+                document.getElementById('historical-tps-display').innerHTML = '<p>Error fetching historical TPS data. Please try again later.</p>';
+            }
+        }
+
+        // Call both functions on page load
+        getMoneroTPS();
+        getHistoricalTPS();
+    </script>
+</body>
+</html>

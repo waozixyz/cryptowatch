@@ -1,0 +1,22 @@
+{
+    "version": 2,
+    "builds": [
+      {
+        "src": "api/calculate-tps.js",
+        "use": "@vercel/node"
+      }
+    ],
+    "routes": [
+      {
+        "src": "/api/calculate-tps",
+        "dest": "/api/calculate-tps.js"
+      }
+    ],
+    "crons": [
+      {
+        "path": "/api/calculate-tps",
+        "schedule": "0 0 * * *"
+      }
+    ]
+  }
+  
