@@ -2,14 +2,14 @@
     "version": 2,
     "builds": [
       {
-        "src": "api/calculate-tps.js",
+        "src": "index.js",
         "use": "@vercel/node"
       }
     ],
     "routes": [
       {
-        "src": "/api/calculate-tps",
-        "dest": "/api/calculate-tps.js"
+        "src": "/(.*)",
+        "dest": "index.js"
       }
     ],
     "crons": [
@@ -19,4 +19,3 @@
       }
     ]
   }
-  

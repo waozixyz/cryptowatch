@@ -2,7 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const axios = require('axios');
 const path = require('path');
-
+const { calculateAndStoreHistoricalTPS } = require('./historical-tps.js');
 const { Sequelize, DataTypes } = require('sequelize');
 const app = express();
 const port = process.env.PORT || 3000;
@@ -161,7 +161,22 @@ app.get('/get-historical-tps', async (req, res) => {
     }
 });
 
+app.post('/run-historical-tps', async (req, res) => {
+    try {
+      // Import the calculateAndStoreHistoricalTPS function
+      const { calculateAndStoreHistoricalTPS } = require('./historical-tps.js');
+      
+      // Run the historical TPS calculation
+      await calculateAndStoreHistoricalTPS();
+      
+      res.json({ message: 'Historical TPS calculation completed successfully' });
+    } catch (error) {
+      console.error('Error running historical TPS calculation:', error);
+      res.status(500).json({ error: 'Failed to calculate historical TPS' });
+    }
+  });
 
 app.listen(port, () => {
     console.log(`Server running at http://localhost:${port}`);
 });
+

@@ -20,9 +20,18 @@
             </nav>
         </header>
 
+
         <section class="hero">
             <h2>Tracking the Untraceable: Privacy Coins Unveiled</h2>
         </section>
+
+        <!-- Add this section for the historical TPS calculation -->
+        <section class="historical-tps">
+            <h3>Historical TPS Calculation</h3>
+            <button id="runHistoricalTPS">Run Historical TPS Calculation</button>
+            <p id="calculationStatus"></p>
+        </section>
+
 
         <table id="coin-table">
             <thead>
@@ -40,6 +49,20 @@
         </table>
     </div>
 
+
     <script src="/script.js"></script>
+    <script>
+        document.getElementById('runHistoricalTPS').addEventListener('click', async () => {
+            const statusElement = document.getElementById('calculationStatus');
+            statusElement.textContent = 'Calculation started...';
+            try {
+                const response = await fetch('/run-historical-tps', { method: 'POST' });
+                const data = await response.json();
+                statusElement.textContent = data.message;
+            } catch (error) {
+                statusElement.textContent = 'Error: ' + error.message;
+            }
+        });
+    </script>
 </body>
 </html>
