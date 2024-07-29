@@ -3,8 +3,7 @@ import dotenv from 'dotenv';
 import axios from 'axios';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { Sequelize, DataTypes } from 'sequelize';
-import { calculateAndStoreHistoricalTPS } from './historical-tps.js';
+import { sql } from '@vercel/postgres'; // Import the Vercel PostgreSQL client
 
 dotenv.config();
 
@@ -49,47 +48,22 @@ async function getWorkingNode() {
     throw new Error("Failed to connect to any node");
 }
 
-const sequelize = new Sequelize(process.env.POSTGRES_URL, {
-    dialect: 'postgres',
-    dialectOptions: {
-      ssl: {
-        require: true,
-        rejectUnauthorized: false
-      }
+async function initializeDatabase() {
+    try {
+        await sql`CREATE TABLE IF NOT EXISTS daily_tps (
+            date DATE NOT NULL UNIQUE,
+            tps FLOAT NOT NULL
+        )`;
+        console.log("Database & tables created!");
+    } catch (error) {
+        console.error('Unable to initialize the database:', error);
     }
-});
-
-// Define model
-const DailyTPS = sequelize.define('DailyTPS', {
-    date: {
-      type: DataTypes.DATEONLY,
-      allowNull: false,
-      unique: true
-    },
-    tps: {
-      type: DataTypes.FLOAT,
-      allowNull: false
-    }
-});
-
-sequelize.authenticate()
-  .then(() => {
-    console.log('Database connection has been established successfully.');
-    return sequelize.sync({ alter: true });
-  })
-  .then(() => {
-    console.log("Database & tables created!");
-  })
-  .catch((error) => {
-    console.error('Unable to connect to the database:', error);
-  });
+}
 
 async function getMostRecentTPS() {
     try {
-        const mostRecent = await DailyTPS.findOne({
-            order: [['date', 'DESC']]
-        });
-        return mostRecent ? mostRecent.tps : null;
+        const { rows } = await sql`SELECT * FROM daily_tps ORDER BY date DESC LIMIT 1`;
+        return rows.length > 0 ? rows[0].tps : null;
     } catch (error) {
         console.error(`Error fetching most recent TPS: ${error.message}`);
         return null;
@@ -166,10 +140,8 @@ app.get('/get-monero-tps', async (req, res) => {
 
 app.get('/get-historical-tps', async (req, res) => {
     try {
-        const historicalTPS = await DailyTPS.findAll({
-            order: [['date', 'ASC']]
-        });
-        res.json(historicalTPS);
+        const { rows } = await sql`SELECT * FROM daily_tps ORDER BY date ASC`;
+        res.json(rows);
     } catch (error) {
         console.error(`Error fetching historical TPS: ${error.message}`);
         res.status(500).json({ error: "Unable to fetch historical TPS data. The data may not have been calculated yet." });
