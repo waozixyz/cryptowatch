@@ -55,14 +55,24 @@
         document.getElementById('runHistoricalTPS').addEventListener('click', async () => {
             const statusElement = document.getElementById('calculationStatus');
             statusElement.textContent = 'Calculation started...';
+    
             try {
                 const response = await fetch('/run-historical-tps', { method: 'POST' });
-                const data = await response.json();
-                statusElement.textContent = data.message;
+    
+                if (!response.ok) {
+                    // Check if the response is not ok (e.g., 4xx or 5xx status codes)
+                    const errorData = await response.json(); // Attempt to parse JSON error data
+                    throw new Error(errorData.message || 'Unknown error occurred');
+                }
+    
+                const data = await response.json(); // Parse JSON data from successful response
+                statusElement.textContent = data.message || 'Calculation completed successfully.';
             } catch (error) {
-                statusElement.textContent = 'Error: ' + error.message;
+                // Display the error message
+                statusElement.textContent = 'Error: ' + (error.message || 'Unknown error occurred');
             }
         });
     </script>
+    
 </body>
 </html>
