@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crypto Privacy Watch</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>CRYPTO PRIVACY WATCH</h1>
+            <nav>
+                <a href="/">HOME</a>
+                <a href="/monero-tps">MONERO TPS</a>
+            </nav>
+        </header>
+
+        <section class="hero">
+            <h2>Tracking the Untraceable: Privacy Coins Unveiled</h2>
+        </section>
+
+        <table id="coin-table">
+            <thead>
+                <tr>
+                    <th data-sort="name">Name</th>
+                    <th data-sort="tps">TPS</th>
+                    <th data-sort="security">Security</th>
+                    <th data-sort="privacy">Privacy</th>
+                    <th data-sort="consensus">Consensus Model</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Table rows will be dynamically inserted here -->
+            </tbody>
+        </table>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
