@@ -3,7 +3,9 @@ import dotenv from 'dotenv';
 import axios from 'axios';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { sql } from '@vercel/postgres'; // Import the Vercel PostgreSQL client
+import { sql } from '@vercel/postgres'; 
+import { calculateAndStoreHistoricalTPS } from '../historical-tps.js';
+
 
 dotenv.config();
 
