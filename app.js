@@ -1,9 +1,16 @@
-require('dotenv').config();
-const express = require('express');
-const axios = require('axios');
-const path = require('path');
-const { calculateAndStoreHistoricalTPS } = require('./historical-tps.js');
-const { Sequelize, DataTypes } = require('sequelize');
+import express from 'express';
+import dotenv from 'dotenv';
+import axios from 'axios';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { Sequelize, DataTypes } from 'sequelize';
+import { calculateAndStoreHistoricalTPS } from './historical-tps.js';
+
+dotenv.config();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const app = express();
 const port = process.env.PORT || 3000;
 
@@ -41,6 +48,42 @@ async function getWorkingNode() {
     }
     throw new Error("Failed to connect to any node");
 }
+
+const sequelize = new Sequelize(process.env.DATABASE_URL, {
+    dialect: 'postgres',
+    dialectOptions: {
+      ssl: {
+        require: true,
+        rejectUnauthorized: false
+      }
+    }
+});
+
+// Define model
+const DailyTPS = sequelize.define('DailyTPS', {
+    date: {
+      type: DataTypes.DATEONLY,
+      allowNull: false,
+      unique: true
+    },
+    tps: {
+      type: DataTypes.FLOAT,
+      allowNull: false
+    }
+});
+
+sequelize.authenticate()
+  .then(() => {
+    console.log('Database connection has been established successfully.');
+    return sequelize.sync({ alter: true });
+  })
+  .then(() => {
+    console.log("Database & tables created!");
+  })
+  .catch((error) => {
+    console.error('Unable to connect to the database:', error);
+  });
+
 async function getMostRecentTPS() {
     try {
         const mostRecent = await DailyTPS.findOne({
@@ -52,35 +95,6 @@ async function getMostRecentTPS() {
         return null;
     }
 }
-
-const sequelize = new Sequelize(process.env.DATABASE_URL, {
-    dialect: 'postgres',
-    dialectOptions: {
-      ssl: {
-        require: true,
-        rejectUnauthorized: false
-      }
-    }
-  });
-  
-  // Define model
-  const DailyTPS = sequelize.define('DailyTPS', {
-    date: {
-      type: DataTypes.DATEONLY,
-      allowNull: false,
-      unique: true
-    },
-    tps: {
-      type: DataTypes.FLOAT,
-      allowNull: false
-    }
-  });
-
-sequelize.sync({ alter: true }).then(() => {
-    console.log("Database & tables created!");
-  }).catch((error) => {
-    console.error("Error syncing database:", error);
-  });
 
 async function getBlock(height, nodeUrl) {
     const payload = {
@@ -149,6 +163,7 @@ app.get('/get-monero-tps', async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
+
 app.get('/get-historical-tps', async (req, res) => {
     try {
         const historicalTPS = await DailyTPS.findAll({
@@ -161,22 +176,35 @@ app.get('/get-historical-tps', async (req, res) => {
     }
 });
 
-app.post('/run-historical-tps', async (req, res) => {
-    try {
-      // Import the calculateAndStoreHistoricalTPS function
-      const { calculateAndStoreHistoricalTPS } = require('./historical-tps.js');
-      
-      // Run the historical TPS calculation
-      await calculateAndStoreHistoricalTPS();
-      
-      res.json({ message: 'Historical TPS calculation completed successfully' });
-    } catch (error) {
-      console.error('Error running historical TPS calculation:', error);
-      res.status(500).json({ error: 'Failed to calculate historical TPS' });
-    }
-  });
+let isCalculating = false;
 
-app.listen(port, () => {
-    console.log(`Server running at http://localhost:${port}`);
+app.post('/run-historical-tps', async (req, res) => {
+    if (isCalculating) {
+        return res.status(409).json({ message: 'Calculation already in progress' });
+    }
+    
+    isCalculating = true;
+    try {
+        await calculateAndStoreHistoricalTPS();
+        res.json({ message: 'Historical TPS calculation completed successfully' });
+    } catch (error) {
+        console.error('Error running historical TPS calculation:', error);
+        res.status(500).json({ error: 'Failed to calculate historical TPS' });
+    } finally {
+        isCalculating = false;
+    }
 });
 
+// Error handling middleware
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).send('Something broke!');
+});
+
+if (process.env.NODE_ENV !== 'production') {
+    app.listen(port, () => {
+        console.log(`Server running at http://localhost:${port}`);
+    });
+}
+
+export default app;

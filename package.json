@@ -4,10 +4,6 @@
   "type": "module",
   "description": "A tool for monitoring Monero TPS",
   "main": "historical-tps.js",
-  "scripts": {
-    "start": "node historical-tps.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
   "keywords": [
     "monero",
     "cryptocurrency",
@@ -26,5 +22,8 @@
     "pg-hstore": "^2.3.4",
     "sequelize": "^6.37.3",
     "vercel": "^35.2.1"
+  },
+  "scripts": {
+    "start": "node app.js"
   }
 }
