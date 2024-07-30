@@ -41,6 +41,18 @@ nav a:hover {
     text-decoration: underline;
 }
 
+
+a {
+    color: #f39c12; /* Change the default link color */
+    text-decoration: none; /* Remove underline */
+}
+
+a:hover {
+    text-decoration: underline; /* Add underline on hover */
+    color: #e67e22; /* Slightly different shade on hover */
+}
+
+
 .hero {
     text-align: center;
     padding: 50px 0;

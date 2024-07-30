@@ -53,6 +53,35 @@ async function testDatabaseConnection() {
     process.exit(1);
   }
 }
+import fs from 'fs/promises';
+
+const CHECKPOINT_FILE = 'checkpoint.json';
+
+async function saveCheckpoint(date, currentHeight, totalTransactions) {
+  const checkpoint = {
+    date: date.toISOString(),
+    currentHeight,
+    totalTransactions
+  };
+  await fs.writeFile(CHECKPOINT_FILE, JSON.stringify(checkpoint, null, 2));
+  console.log(`Checkpoint saved: ${JSON.stringify(checkpoint)}`);
+}
+
+async function loadCheckpoint() {
+  try {
+    const data = await fs.readFile(CHECKPOINT_FILE, 'utf8');
+    const checkpoint = JSON.parse(data);
+    console.log(`Loaded checkpoint: ${JSON.stringify(checkpoint)}`);
+    return {
+      date: new Date(checkpoint.date),
+      currentHeight: checkpoint.currentHeight,
+      totalTransactions: checkpoint.totalTransactions
+    };
+  } catch (error) {
+    console.log('No checkpoint found or error reading checkpoint file');
+    return null;
+  }
+}
 
 function delay(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -152,93 +181,107 @@ async function storeDailyTPS(date, tps, startTimestamp, endTimestamp, startHeigh
     console.error(`Error storing TPS for date ${date.toISOString()}:`, error);
   }
 }
-
 export async function calculateAndStoreHistoricalTPS() {
-    checkEnvironmentVariables();
-    await testDatabaseConnection();
-    try {
-      console.log('Starting historical TPS calculation');
-  
-      await sql`
-        CREATE TABLE IF NOT EXISTS DailyTPS (
-          id SERIAL PRIMARY KEY,
-          date DATE UNIQUE NOT NULL,
-          tps FLOAT NOT NULL,
-          start_timestamp BIGINT NOT NULL,
-          end_timestamp BIGINT NOT NULL,
-          start_height INTEGER NOT NULL,
-          end_height INTEGER NOT NULL,
-          created_at TIMESTAMP WITH TIME ZONE NOT NULL,
-          updated_at TIMESTAMP WITH TIME ZONE NOT NULL
-        )
-      `;
-      console.log('Ensured DailyTPS table exists with updated schema');
-  
-      const startDate = new Date('2014-04-18');
-      const endDate = new Date();
-      let currentDate = new Date(startDate);
-  
-      while (currentDate <= endDate) {
-        try {
-          console.log(`Calculating TPS for ${currentDate.toISOString().split('T')[0]}`);
-  
-          const startHeight = await getHeightAtDate(currentDate);
-          console.log(`Start height: ${startHeight}`);
-  
-          const nextDate = new Date(currentDate);
-          nextDate.setDate(nextDate.getDate() + 1);
-          const endHeight = await getHeightAtDate(nextDate);
-          console.log(`End height: ${endHeight}`);
-  
-          if (startHeight === endHeight) {
-            console.log(`No blocks for date ${currentDate.toISOString().split('T')[0]}, skipping`);
-            currentDate.setDate(currentDate.getDate() + 1);
-            continue;
-          }
-  
-          let totalTransactions = 0;
-          let startTimestamp, endTimestamp;
-  
-          for (let height = startHeight; height <= endHeight; height++) {
-            const block = await getBlockWithDelay(height);
-            if (height === startHeight) startTimestamp = block.timestamp;
-            if (height === endHeight) endTimestamp = block.timestamp;
-            
-            // Handle the case where transactions might not exist (e.g., genesis block)
-            if (block.transactions && Array.isArray(block.transactions)) {
-              totalTransactions += block.transactions.length;
-            } else {
-              console.log(`Block at height ${height} has no transactions array`);
-            }
-          }
-  
-          const timeSpan = endTimestamp - startTimestamp;
-          const tps = timeSpan > 0 ? totalTransactions / timeSpan : 0;
-  
-          if (isNaN(tps) || !isFinite(tps)) {
-            console.log(`Invalid TPS calculated for ${currentDate.toISOString().split('T')[0]}, skipping`);
-            currentDate.setDate(currentDate.getDate() + 1);
-            continue;
-          }
-  
-          await storeDailyTPS(currentDate, tps, startTimestamp, endTimestamp, startHeight, endHeight);
-  
-          console.log(`TPS for ${currentDate.toISOString().split('T')[0]}: ${tps}`);
-        } catch (error) {
-          console.error(`Error processing date ${currentDate.toISOString()}:`, error);
-          await delay(60000); // Wait for 1 minute before trying the next date
+  checkEnvironmentVariables();
+  await testDatabaseConnection();
+  try {
+    console.log('Starting historical TPS calculation');
+
+    await sql`
+      CREATE TABLE IF NOT EXISTS DailyTPS (
+        id SERIAL PRIMARY KEY,
+        date DATE UNIQUE NOT NULL,
+        tps FLOAT NOT NULL,
+        start_timestamp BIGINT NOT NULL,
+        end_timestamp BIGINT NOT NULL,
+        start_height INTEGER NOT NULL,
+        end_height INTEGER NOT NULL,
+        created_at TIMESTAMP WITH TIME ZONE NOT NULL,
+        updated_at TIMESTAMP WITH TIME ZONE NOT NULL
+      )
+    `;
+    console.log('Ensured DailyTPS table exists with updated schema');
+
+    const checkpoint = await loadCheckpoint();
+    let currentDate = checkpoint ? new Date(checkpoint.date) : new Date('2014-04-18');
+    const endDate = new Date();
+
+    while (currentDate <= endDate) {
+      try {
+        console.log(`Calculating TPS for ${currentDate.toISOString().split('T')[0]}`);
+
+        let startHeight, endHeight, totalTransactions;
+
+        if (checkpoint && currentDate.toISOString().split('T')[0] === checkpoint.date.split('T')[0]) {
+          startHeight = checkpoint.currentHeight;
+          totalTransactions = checkpoint.totalTransactions;
+          console.log(`Resuming from checkpoint: height ${startHeight}, transactions ${totalTransactions}`);
+        } else {
+          startHeight = await getHeightAtDate(currentDate);
+          totalTransactions = 0;
         }
-  
-        currentDate.setDate(currentDate.getDate() + 1);
+
+        console.log(`Start height: ${startHeight}`);
+
+        const nextDate = new Date(currentDate);
+        nextDate.setDate(nextDate.getDate() + 1);
+        endHeight = await getHeightAtDate(nextDate);
+        console.log(`End height: ${endHeight}`);
+
+        if (startHeight === endHeight) {
+          console.log(`No blocks for date ${currentDate.toISOString().split('T')[0]}, skipping`);
+          currentDate.setDate(currentDate.getDate() + 1);
+          continue;
+        }
+
+        let startTimestamp, endTimestamp;
+
+        for (let height = startHeight; height <= endHeight; height++) {
+          const block = await getBlockWithDelay(height);
+          if (height === startHeight) startTimestamp = block.timestamp;
+          if (height === endHeight) endTimestamp = block.timestamp;
+          
+          if (block.transactions && Array.isArray(block.transactions)) {
+            totalTransactions += block.transactions.length;
+          } else {
+            console.log(`Block at height ${height} has no transactions array`);
+          }
+
+          // Save checkpoint after each block
+          await saveCheckpoint(currentDate, height, totalTransactions);
+        }
+
+        const timeSpan = endTimestamp - startTimestamp;
+        const tps = timeSpan > 0 ? totalTransactions / timeSpan : 0;
+
+        if (isNaN(tps) || !isFinite(tps)) {
+          console.log(`Invalid TPS calculated for ${currentDate.toISOString().split('T')[0]}, skipping`);
+          currentDate.setDate(currentDate.getDate() + 1);
+          continue;
+        }
+
+        await storeDailyTPS(currentDate, tps, startTimestamp, endTimestamp, startHeight, endHeight);
+
+        console.log(`TPS for ${currentDate.toISOString().split('T')[0]}: ${tps}`);
+
+        // Clear checkpoint after successful day processing
+        await fs.unlink(CHECKPOINT_FILE).catch(() => {});
+
+      } catch (error) {
+        console.error(`Error processing date ${currentDate.toISOString()}:`, error);
+        await delay(60000); // Wait for 1 minute before trying the next date
       }
-  
-      console.log('Historical TPS calculation completed');
-      await displayStoredData();
-  
-    } catch (error) {
-      console.error('Error in calculateAndStoreHistoricalTPS:', error.message);
-      console.error('Stack trace:', error.stack);
+
+      currentDate.setDate(currentDate.getDate() + 1);
     }
+
+    console.log('Historical TPS calculation completed');
+    await displayStoredData();
+
+  } catch (error) {
+    console.error('Error in calculateAndStoreHistoricalTPS:', error.message);
+    console.error('Stack trace:', error.stack);
+  }
 }
 
 
