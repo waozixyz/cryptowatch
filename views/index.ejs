@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Crypto Privacy Watch</title>
-    <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="container">
@@ -21,17 +21,19 @@
         </section>
 
         <section class="update-info">
-            <p>Last Updated: <span id="last-updated">2024-07-16</span></p>
+            <p>Last Updated: <span id="last-updated"></span></p>
         </section>
 
-        <table id="coin-table">
-            <thead>
-                <!-- Table headers will be dynamically inserted here -->
-            </thead>
-            <tbody>
-                <!-- Table rows will be dynamically inserted here -->
-            </tbody>
-        </table>
+        <div class="tab-container">
+            <div class="tabs">
+                <button class="tab-button active" data-tab="general">General Info</button>
+                <button class="tab-button" data-tab="tps">TPS Focus</button>
+                <button class="tab-button" data-tab="smart-contracts">Smart Contracts/DeFi</button>
+                <button class="tab-button" data-tab="specs">Specifications</button>
+                <button class="tab-button" data-tab="tokenomics">Tokenomics</button>
+            </div>
+            <div id="table-container"></div>
+        </div>
 
         <section id="sources">
             <h3>Sources:</h3>
@@ -39,6 +41,6 @@
         </section>
     </div>
 
-    <script src="/script.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>

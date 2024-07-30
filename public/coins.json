@@ -1,0 +1,48 @@
+
+[
+  {
+    "name": "Monero (XMR)",
+    "coinGeckoId": "monero",
+    "avgTPS": 4.5,
+    "peakTPS": 10,
+    "maxSupply": "∞",
+    "emissionSchedule": "Tail emission",
+    "consensus": "RandomX (PoW)",
+    "lastUpdate": "2024-07-30",
+    "blockchain": "c++",
+    "blockchainSrc": "https://github.com/monero-project/monero",
+    "smartContracts": false,
+    "notes": "Monero uses RingCT and stealth addresses for enhanced privacy.",
+    "tokenomicsNotes": "Monero has a tail emission to ensure a minimum block reward for miners."
+  },
+  {
+    "name": "Zcash (ZEC)",
+    "coinGeckoId": "zcash",
+    "avgTPS": 6,
+    "peakTPS": 27,
+    "maxSupply": "21 million",
+    "emissionSchedule": "Halving every 4 years",
+    "consensus": "Equihash (PoW)",
+    "lastUpdate": "2024-07-30",
+    "blockchain": "c++",
+    "blockchainSrc": "https://github.com/zcash/zcash",
+    "smartContracts": false,
+    "notes": "Zcash offers optional privacy using zk-SNARKs for shielded transactions.",
+    "tokenomicsNotes": "Zcash follows a Bitcoin-like halving schedule."
+  },
+  {
+    "name": "Zano (ZANO)",
+    "coinGeckoId": "zano",
+    "avgTPS": null,
+    "peakTPS": null,
+    "maxSupply": "∞",
+    "emissionSchedule": "Decreasing block rewards",
+    "consensus": "ProgPow (PoW)",
+    "lastUpdate": "2024-07-30",
+    "blockchain": "c++",
+    "blockchainSrc": "https://github.com/hyle-team/zano",
+    "smartContracts": true,
+    "notes": "Zano offers privacy-preserving smart contracts and high scalability.",
+    "tokenomicsNotes": "All transaction fees in Zano are burned, with tail emissions to maintain network security."
+  }
+]
